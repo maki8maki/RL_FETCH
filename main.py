@@ -76,7 +76,7 @@ if __name__ == '__main__':
     # plt.show()
     
     episode_rewards = []
-    num_average_epidodes = 10
+    num_average_epidodes = 5
     for episode in range(nepisodes):
         obs, info = env.reset()
         img = env.render()
@@ -86,7 +86,6 @@ if __name__ == '__main__':
             action = agent.get_action(state).cpu().detach().numpy()
             next_obs, reward, success, done, info = env.step(action)
             next_img = env.render()
-            frames.append(next_img)
             next_state = {"image": trans(next_img).numpy(), "obs": next_obs["observation"]}
             transition = {
                     'state': state,
@@ -104,7 +103,7 @@ if __name__ == '__main__':
                 obs = next_obs
                 img = next_img
         episode_rewards.append(episode_reward)
-        if episode % 20 == 0:
+        if episode % 5 == 0:
             print("Episode %d finished | Episode reward %f" % (episode, episode_reward))
 
     # 累積報酬の移動平均を表示

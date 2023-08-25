@@ -15,7 +15,7 @@ class DCAE_DDPG:
         obs_space_low = np.concatenate([hidden_low, observation_space.low])
         obs_space_high = np.concatenate([hidden_high, observation_space.high])
         obs_space = spaces.Box(low=obs_space_low, high=obs_space_high, dtype=np.float64)
-        self.ddpg = DDPG(observation_space=obs_space, action_space=action_space, gamma=gamma, lr=lr, batch_size=batch_size, memory_size=memory_size)
+        self.ddpg = DDPG(observation_space=obs_space, action_space=action_space, gamma=gamma, lr=lr, batch_size=batch_size, memory_size=memory_size, device=device)
         self.device = device
     
     def get_action(self, state):

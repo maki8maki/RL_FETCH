@@ -6,10 +6,10 @@ import torch.optim as optim
 from agents.utils import ReplayBuffer
 
 class ActorNetwork(nn.Module):
-    def __init__(self, num_state, action_space, hidden_size=16) -> None:
+    def __init__(self, num_state, action_space, hidden_size=16, device="cpu"):
         super(ActorNetwork, self).__init__()
-        self.action_mean = torch.tensor(0.5*(action_space.high+action_space.low), dtype=torch.float)
-        self.action_halfwidth = torch.tensor(0.5*(action_space.high-action_space.low), dtype=torch.float)
+        self.action_mean = torch.tensor(0.5*(action_space.high+action_space.low), dtype=torch.float, device=device)
+        self.action_halfwidth = torch.tensor(0.5*(action_space.high-action_space.low), dtype=torch.float, device=device)
         self.fc1 = nn.Linear(num_state, hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
         self.fc3 = nn.Linear(hidden_size, action_space.shape[0])
@@ -21,10 +21,10 @@ class ActorNetwork(nn.Module):
         return a
 
 class CriticNetwork(nn.Module):
-    def __init__(self, num_state, action_space, hidden_size=16):
+    def __init__(self, num_state, action_space, hidden_size=16, device="cpu"):
         super(CriticNetwork, self).__init__()
-        self.action_mean = torch.tensor(0.5*(action_space.high+action_space.low), dtype=torch.float)
-        self.action_halfwidth = torch.tensor(0.5*(action_space.high-action_space.low), dtype=torch.float)
+        self.action_mean = torch.tensor(0.5*(action_space.high+action_space.low), dtype=torch.float, device=device)
+        self.action_halfwidth = torch.tensor(0.5*(action_space.high-action_space.low), dtype=torch.float, device=device)
         self.fc1 = nn.Linear(num_state+action_space.shape[0], hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
         self.fc3 = nn.Linear(hidden_size, action_space.shape[0])
@@ -44,13 +44,14 @@ class DDPG:
         # self.state_halfwidth = 0.5*(observation_space.high - observation_space.low)
         self.gamma = gamma  # 割引率
         self.batch_size = batch_size
-        self.actor = ActorNetwork(self.num_state, action_space).to(device)
+        self.actor = ActorNetwork(self.num_state, action_space, device=device).to(device)
         self.actor_target = copy.deepcopy(self.actor)  # actorのターゲットネットワーク
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=lr)
-        self.critic = CriticNetwork(self.num_state, action_space).to(device)
+        self.critic = CriticNetwork(self.num_state, action_space, device=device).to(device)
         self.critic_target = copy.deepcopy(self.critic)  # criticのターゲットネットワーク
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=lr)
         self.replay_buffer = ReplayBuffer(memory_size)
+        self.device = device
 
     # 連続値の状態を[-1,1]の範囲に正規化
     def normalize_state(self, state):
@@ -108,6 +109,6 @@ class DDPG:
     # Q値が最大の行動を選択
     def get_action(self, state):
         # state_tensor = torch.tensor(self.normalize_state(state), dtype=torch.float).view(-1, self.num_state)
-        state_tensor = torch.tensor(state, dtype=torch.float).view(-1, self.num_state)
+        state_tensor = torch.tensor(state, dtype=torch.float, device=self.device).view(-1, self.num_state)
         action = self.actor(state_tensor).view(self.num_action)
         return action
