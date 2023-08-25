@@ -83,6 +83,7 @@ if __name__ == '__main__':
         episode_reward = 0
         for t in range(nsteps):
             state = {"image": trans(img).numpy(), "obs": obs["observation"]}
+            action = agent.get_action(state).cpu().detach().numpy()
             next_obs, reward, success, done, info = env.step(action)
             next_img = env.render()
             frames.append(next_img)
@@ -97,9 +98,11 @@ if __name__ == '__main__':
                 }
             agent.ddpg.replay_buffer.append(transition)
             agent.update()
-            state = next_state
             if success or done:
                 break
+            else:
+                obs = next_obs
+                img = next_img
         episode_rewards.append(episode_reward)
         if episode % 20 == 0:
             print("Episode %d finished | Episode reward %f" % (episode, episode_reward))

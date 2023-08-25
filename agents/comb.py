@@ -20,7 +20,7 @@ class DCAE_DDPG:
     
     def get_action(self, state):
         state_list = list(state.values())
-        h = self.dcae.forward(torch.tensor(state_list[0], dtype=torch.float)).data.numpy()
+        h = self.dcae.forward(torch.tensor(state_list[0], dtype=torch.float).to(self.device)).squeeze().cpu().detach().numpy()
         _state = np.concatenate([h, state_list[1]])
         return self.ddpg.get_action(_state)
     

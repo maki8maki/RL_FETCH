@@ -107,6 +107,7 @@ class DDPG:
 
     # Q値が最大の行動を選択
     def get_action(self, state):
-        state_tensor = torch.tensor(self.normalize_state(state), dtype=torch.float).view(-1, self.num_state)
+        # state_tensor = torch.tensor(self.normalize_state(state), dtype=torch.float).view(-1, self.num_state)
+        state_tensor = torch.tensor(state, dtype=torch.float).view(-1, self.num_state)
         action = self.actor(state_tensor).view(self.num_action)
         return action
