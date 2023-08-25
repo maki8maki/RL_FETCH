@@ -27,7 +27,7 @@ class CriticNetwork(nn.Module):
         self.action_halfwidth = torch.tensor(0.5*(action_space.high-action_space.low), dtype=torch.float, device=device)
         self.fc1 = nn.Linear(num_state+action_space.shape[0], hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
-        self.fc3 = nn.Linear(hidden_size, action_space.shape[0])
+        self.fc3 = nn.Linear(hidden_size, 1)
 
     def forward(self, s, a):
         a = (a-self.action_mean)/self.action_halfwidth
