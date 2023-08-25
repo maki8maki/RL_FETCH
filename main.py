@@ -88,14 +88,15 @@ if __name__ == '__main__':
             next_img = env.render()
             next_state = {"image": trans(next_img).numpy(), "obs": next_obs["observation"]}
             transition = {
-                    'state': state,
-                    'next_state': next_state,
-                    'reward': reward,
-                    'action': action,
-                    'success': int(success),
-                    'done': int(done)
-                }
+                'state': state,
+                'next_state': next_state,
+                'reward': reward,
+                'action': action,
+                'success': int(success),
+                'done': int(done)
+            }
             agent.ddpg.replay_buffer.append(transition)
+            episode_reward += reward
             agent.update()
             if success or done:
                 break
