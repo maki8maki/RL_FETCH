@@ -46,9 +46,13 @@ class DDPG:
         self.batch_size = batch_size
         self.actor = ActorNetwork(self.num_state, action_space, device=device).to(device)
         self.actor_target = copy.deepcopy(self.actor)  # actorのターゲットネットワーク
+        for p in self.actor_target.parameters():
+            p.requires_grad = False
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=lr)
         self.critic = CriticNetwork(self.num_state, action_space, device=device).to(device)
         self.critic_target = copy.deepcopy(self.critic)  # criticのターゲットネットワーク
+        for p in self.critic_target.parameters():
+            p.requires_grad = False
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=lr)
         self.replay_buffer = ReplayBuffer(memory_size)
         self.device = device
@@ -61,11 +65,11 @@ class DDPG:
     # リプレイバッファからサンプルされたミニバッチをtensorに変換
     def batch_to_tensor(self, batch):
         # states = torch.tensor([self.normalize_state(s) for s in batch["states"]], dtype=torch.float)
-        states = torch.tensor(batch["states"], dtype=torch.float)
-        actions = torch.tensor(batch["actions"], dtype=torch.float)
+        states = torch.tensor(batch["states"], dtype=torch.float, device=self.device)
+        actions = torch.tensor(batch["actions"], dtype=torch.float, device=self.device)
         # next_states = torch.tensor([self.normalize_state(s) for s in batch["next_states"]], dtype=torch.float)
-        next_states = torch.tensor(batch["next_states"], dtype=torch.float)
-        rewards = torch.tensor(batch["rewards"], dtype=torch.float)
+        next_states = torch.tensor(batch["next_states"], dtype=torch.float, device=self.device)
+        rewards = torch.tensor(batch["rewards"], dtype=torch.float, device=self.device)
         return states, actions, next_states, rewards
 
     # actorとcriticを更新
@@ -73,7 +77,7 @@ class DDPG:
         batch = self.replay_buffer.sample(self.batch_size)
         states, actions, next_states, rewards = self.batch_to_tensor(batch)
         # criticの更新
-        target_q = (rewards + self.gamma*self.critic_target(next_states, self.actor_target(next_states)).squeeze()).data
+        target_q = rewards + self.gamma*self.critic_target(next_states, self.actor_target(next_states)).squeeze()
         q = self.critic(states, actions).squeeze()
         critic_loss = F.mse_loss(q, target_q)
         self.critic_optimizer.zero_grad()
@@ -97,11 +101,15 @@ class DDPG:
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
         self.critic_optimizer.step()
+        for p in self.critic.parameters():
+            p.requires_grad = False
         # actorの更新
         actor_loss = -self.critic(states, self.actor(states)).mean()
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
         self.actor_optimizer.step()
+        for p in self.critic.parameters():
+            p.requires_grad = True
         # ターゲットネットワークのパラメータを更新
         self.critic_target = copy.deepcopy(self.critic)
         self.actor_target = copy.deepcopy(self.actor)
