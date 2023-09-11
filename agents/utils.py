@@ -5,6 +5,9 @@ import torch.nn as nn
 def size_after_conv(h, ksize, stride=1, padding=0):
     return ((h - ksize + 2 * padding) // stride) + 1
 
+def size_after_pooling(h, ksize):
+    return h // ksize
+
 class Reshape(nn.Module):
     def __init__(self, shape):
         super(Reshape, self).__init__()
