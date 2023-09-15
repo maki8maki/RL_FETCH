@@ -1,27 +1,32 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 import gymnasium as gym
 import torch
 from torchvision import transforms
+import json
+import os
 
 from agents.comb import DCAE_DDPG
-from utils import set_seed
+from utils import set_seed, anim, EarlyStopping
 
 if __name__ == '__main__':
     set_seed(0)
     
-    gamma = 0.7
-    batch_size = 5
-    memory_size = 100
-    nepisodes = 10
-    nsteps = 100
-    hidden_dim = 20
-    img_width = 80
-    img_height = 80
+    pwd = os.path.dirname(os.path.abspath(__file__)) + "/"
+    
+    with open(pwd+"params.json", "r") as f:
+        data = json.load(f)
+    gamma = data["gamma"]
+    batch_size = data["batch_size"]
+    memory_size = data["memory_size"]
+    nepisodes = data["nepisodes"]
+    nsteps = data["nsteps"]
+    hidden_dim = data["hidden_dim"]
+    img_width = data["img_width"]
+    img_height = data["img_height"]
     img_size = (img_height, img_width, 3)
     
-    env = gym.make("FetchReachDense-v2", render_mode="rgb_array")
+    env = gym.make("FetchReachDense-v2", render_mode="rgb_array", max_episode_steps=nsteps)
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(device)
@@ -34,19 +39,21 @@ if __name__ == '__main__':
         transforms.ToTensor(),
         transforms.Normalize(0.5, 0.5)
     ])
+    path = pwd + "model/DCAE_DDPG_best.pth"
+    early_stopping = EarlyStopping(verbose=True, patience=100, path=path)
     
     frames = []
+    seed = 42
     
     print('Start Data collection')
-    obs, info = env.reset(seed=42)
+    obs, info = env.reset(seed=seed)
     img = env.render()
-    frames.append(img)
-    for _ in range(memory_size):
+    for i in range(memory_size):
+        # frames.append(img)
         state = {'image': trans(img).numpy(), 'obs': obs["observation"]}
         action = env.action_space.sample()
         next_obs, reward, success, done, info = env.step(action)
         next_img = env.render()
-        frames.append(img)
         next_state = {'image': trans(next_img).numpy(), 'obs': next_obs["observation"]}
         transition = {
             'state': state,
@@ -63,17 +70,10 @@ if __name__ == '__main__':
         else:
             obs = next_obs
             img = next_img
-    print('%d Data collected' % (memory_size))
+        if (i+1) % (int(memory_size/10)) == 0:
+            print('%d / %d Data collected' % (i+1, memory_size))
     
-    # plt.figure(figsize=(frames[0].shape[1]/72.0, frames[0].shape[0]/72.0), dpi=72)
-    # patch = plt.imshow(frames[0])
-    # plt.axis('off')
-
-    # def animate(i):
-    #     patch.set_data(frames[i])
-
-    # anim = animation.FuncAnimation(plt.gcf(), animate, frames=len(frames), interval=50)
-    # plt.show()
+    # anim(frames)
     
     episode_rewards = []
     num_average_epidodes = 5
@@ -104,8 +104,11 @@ if __name__ == '__main__':
                 obs = next_obs
                 img = next_img
         episode_rewards.append(episode_reward)
-        if episode % 5 == 0:
-            print("Episode %d finished | Episode reward %f" % (episode, episode_reward))
+        if (episode+1) % 5 == 0:
+            print("Episode %d finished | Episode reward %f" % (episode+1, episode_reward))
+        early_stopping(-episode_reward, agent)
+        if early_stopping.early_stop:
+            break
 
     # 累積報酬の移動平均を表示
     moving_average = np.convolve(episode_rewards, np.ones(num_average_epidodes)/num_average_epidodes, mode='valid')
@@ -114,5 +117,25 @@ if __name__ == '__main__':
     plt.xlabel('episode')
     plt.ylabel('rewards')
     plt.show()
+    
+    frames = []
+    
+    agent.load(path)
+    agent.eval()
+    obs, info = env.reset(seed=seed)
+    img = env.render()
+    while True:
+        frames.append(img)
+        state = {'image': trans(img).numpy(), 'obs': obs["observation"]}
+        action = agent.get_action(state).cpu().detach().numpy()
+        next_obs, reward, success, done, info = env.step(action)
+        next_img = env.render()
+        if success or done:
+            break
+        else:
+            img = next_img
+            obs = next_obs
+    
+    anim(frames)
 
     env.close()

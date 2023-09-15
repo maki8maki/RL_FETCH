@@ -1,0 +1,10 @@
+{
+    "gamma": 0.7,
+    "batch_size": 50,
+    "memory_size": 10000,
+    "nepisodes": 100,
+    "nsteps": 100,
+    "hidden_dim": 20,
+    "img_width": 80,
+    "img_height": 80
+}
