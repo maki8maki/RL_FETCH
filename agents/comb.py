@@ -50,3 +50,29 @@ class DCAE_DDPG:
         self.dcae_optim.step()
         self.dcae_optim.zero_grad()
         self.ddpg.update_from_batch(batch)
+    
+    def save(self, path):
+        torch.save({
+            "dcae": self.dcae.state_dict(),
+            "actor": self.ddpg.actor.state_dict(),
+            "critic": self.ddpg.critic.state_dict()
+        }, path)
+    
+    def load(self, path):
+        state_dicts = torch.load(path, map_location=self.device)
+        self.dcae.load_state_dict(state_dicts["dcae"])
+        self.ddpg.actor.load_state_dict(state_dicts["actor"])
+        self.ddpg.critic.load_state_dict(state_dicts["critic"])
+    
+    def state_dict(self):
+        state_dicts = {
+            "dcae": self.dcae.state_dict(),
+            "actor": self.ddpg.actor.state_dict(),
+            "critic": self.ddpg.critic.state_dict()
+        }
+        return state_dicts
+    
+    def eval(self):
+        self.dcae.eval()
+        self.ddpg.actor.eval()
+        self.ddpg.critic.eval()

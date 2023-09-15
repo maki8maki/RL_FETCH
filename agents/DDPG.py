@@ -101,15 +101,11 @@ class DDPG:
         self.critic_optimizer.zero_grad()
         critic_loss.backward()
         self.critic_optimizer.step()
-        for p in self.critic.parameters():
-            p.requires_grad = False
         # actorの更新
         actor_loss = -self.critic(states, self.actor(states)).mean()
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
         self.actor_optimizer.step()
-        for p in self.critic.parameters():
-            p.requires_grad = True
         # ターゲットネットワークのパラメータを更新
         self.critic_target = copy.deepcopy(self.critic)
         self.actor_target = copy.deepcopy(self.actor)
