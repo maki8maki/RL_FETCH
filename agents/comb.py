@@ -7,9 +7,10 @@ from agents.DCAE import DCAE
 from agents.DDPG import DDPG
 
 class DCAE_DDPG:
-    def __init__(self, image_size, hidden_dim, observation_space, action_space, gamma=0.99, lr=1e-3, batch_size=32, memory_size=50000, device="cpu") -> None:
+    def __init__(self, image_size, hidden_dim, observation_space, action_space, gamma=0.99, lr=1e-3, batch_size=32, memory_size=50000, device="cpu", dcae_loss = F.mse_loss) -> None:
         self.dcae = DCAE(image_size=image_size, hidden_dim=hidden_dim).to(device)
         self.dcae_optim = optim.Adam(self.dcae.parameters(), lr=lr)
+        self.dcae_loss = dcae_loss
         hidden_low = np.zeros(hidden_dim)
         hidden_high = np.ones(hidden_dim)
         obs_space_low = np.concatenate([hidden_low, observation_space.low])
@@ -39,7 +40,7 @@ class DCAE_DDPG:
         next_rbs = np.array(next_rbs)
         hs, imgs_pred = self.dcae.forward(imgs, return_pred=True)
         hs = hs.cpu().detach().numpy()
-        loss = F.mse_loss(imgs_pred, imgs)
+        loss = self.dcae_loss(imgs_pred, imgs)
         next_hs = self.dcae.forward(next_imgs).cpu().detach().numpy()
         return loss, np.concatenate([hs, rbs], axis=1), np.concatenate([next_hs, next_rbs], axis=1)
 
