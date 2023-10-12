@@ -25,14 +25,21 @@ if __name__ == '__main__':
     img_width = data["img_width"]
     img_height = data["img_height"]
     img_size = (img_height, img_width, 3)
-    
     env = gym.make("FetchReachDense-v2", render_mode="rgb_array", max_episode_steps=nsteps)
-    
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(device)
-    agent = DCAE_DDPG(img_size, hidden_dim, env.observation_space["observation"],
-                      env.action_space, gamma=gamma, batch_size=batch_size,
-                      memory_size=memory_size, device=device)
+    config = {
+        "image_size": (img_height, img_width, 3),
+        "hidden_dim": hidden_dim,
+        "observation_space": env.observation_space["observation"],
+        "action_space": env.action_space,
+        "gamma": gamma,
+        "batch_size": batch_size,
+        "memory_size": memory_size,
+        "device": device
+    }
+    
+    agent = DCAE_DDPG(**config)
     trans = transforms.Compose([
         transforms.ToPILImage(),
         transforms.Resize((img_height, img_width)),
