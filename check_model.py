@@ -34,13 +34,12 @@ if __name__ == '__main__':
                       memory_size=memory_size, device=device)
     trans = transforms.Compose([
         transforms.ToPILImage(),
+        transforms.CenterCrop((300, 300)),
         transforms.Resize((img_height, img_width)),
         transforms.ToTensor(),
         transforms.Normalize(0.5, 0.5)
     ])
     path = pwd + "model/DCAE_DDPG_best.pth"
-    
-    frames = []
     
     agent.load(path)
     agent.eval()
@@ -48,6 +47,7 @@ if __name__ == '__main__':
     obs, info = env.reset()
     img = env.render()
     _, pred_img = agent.dcae.forward(trans(img).to(device), True)
+    img = trans(img).numpy().transpose((1, 2, 0)) * 0.5 + 0.5
     pred_img = pred_img.squeeze().detach().cpu().numpy().transpose((1, 2, 0))
     fig = plt.figure()
     ax1 = fig.add_subplot(2, 1, 1)
